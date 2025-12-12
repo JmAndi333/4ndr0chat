@@ -100,11 +100,15 @@ const parseAndSanitize = (markdownText: string): string => {
     return markdownText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 };
 
-export const MessageRenderer = ({ text }: { text: string }) => {
+export const MessageRenderer = ({ text, isUser }: { text: string, isUser?: boolean }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   useLazyCodeEnhancer(containerRef, text);
 
   const { gShellPart, psiPart, hasDualOutput } = useMemo(() => {
+    if (isUser) {
+        return { gShellPart: '', psiPart: text, hasDualOutput: false };
+    }
+      
     const dualOutputRegex = /\[G-Shell\]:(.*?)\[Ψ-4ndr0666\]:(.*)/s;
     const match = text.match(dualOutputRegex);
     
@@ -116,7 +120,7 @@ export const MessageRenderer = ({ text }: { text: string }) => {
       };
     }
     return { gShellPart: '', psiPart: text, hasDualOutput: false };
-  }, [text]);
+  }, [text, isUser]);
 
   const gShellHtml = useMemo(() => parseAndSanitize(gShellPart), [gShellPart]);
   const psiHtml = useMemo(() => parseAndSanitize(psiPart), [psiPart]);

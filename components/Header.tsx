@@ -11,7 +11,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ isLoading, onExportChat, onTriggerImport, onClearChat }) => {
     return (
-        <header className="panel p-2 z-20 flex items-center justify-between">
+        <header className="panel p-2 z-20 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-4">
                 <div className={`header-glyph ${isLoading ? 'is-loading' : ''}`}>
                     <SplashScreenGlyphIcon className="w-full h-full" />

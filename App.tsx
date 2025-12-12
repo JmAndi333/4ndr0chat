@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Author, ChatMessage as ChatMessageType, DisplayPart, MAX_FILE_SIZE, ALLOWED_IMAGE_TYPES, ALLOWED_TEXT_TYPES, Attachment, UrlAttachment, ImageAttachment, TextAttachment } from './types';
 import { createChatSession, getPromptSuggestions, generateReadmeFromHistory, buildMessageParts } from './services/geminiService';
+import ErrorBoundary from './components/ErrorBoundary';
 import ChatMessage from './components/ChatMessage';
 import ChatInput from './components/ChatInput';
 import { SpinnerIcon, ScrollDownIcon, StopIcon } from './components/IconComponents';
@@ -233,6 +235,29 @@ const App: React.FC = () => {
     const messageIndex = chatHistory.findIndex(msg => msg.id === id);
     if (messageIndex === -1) return;
 
+    const messageToEdit = chatHistory[messageIndex];
+
+    // LOCAL EDIT: If editing an AI message, just update it in state.
+    if (messageToEdit.author === Author.AI) {
+        setChatHistory(prev => prev.map(msg => {
+            if (msg.id !== id) return msg;
+            
+            const newParts = [...msg.parts];
+            const textPartIndex = newParts.findIndex(p => 'text' in p);
+            if (textPartIndex !== -1) {
+                newParts[textPartIndex] = { text: newText };
+            } else {
+                newParts.push({ text: newText });
+            }
+            return { ...msg, parts: newParts };
+        }));
+        setEditingMessageId(null);
+        setJustEditedMessageId(id);
+        setTimeout(() => setJustEditedMessageId(null), 2000);
+        return;
+    }
+
+    // REGENERATIVE EDIT: If editing a USER message, fork history and regenerate.
     isStreamingCancelled.current = false;
     const historyToFork = chatHistory.slice(0, messageIndex);
     const editedMessage = { ...chatHistory[messageIndex] };
@@ -514,19 +539,20 @@ const App: React.FC = () => {
           onClearChat={() => setActiveModal('clearConfirm')}
         />
         
-        <div ref={chatContainerRef} className="relative flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 chat-container">
+        <div ref={chatContainerRef} className="relative flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6 chat-container">
           {chatHistory.map((msg, index) => (
-            <ChatMessage 
-              key={msg.id} 
-              message={msg}
-              isEditing={editingMessageId === msg.id}
-              justEditedId={justEditedMessageId}
-              onStartEdit={() => setEditingMessageId(msg.id)}
-              onCancelEdit={() => setEditingMessageId(null)}
-              onSaveEdit={handleSaveEdit}
-              onDelete={handleRequestDeleteMessage}
-              isLastMessage={index === chatHistory.length - 1}
-            />
+            <ErrorBoundary key={msg.id}>
+              <ChatMessage 
+                message={msg}
+                isEditing={editingMessageId === msg.id}
+                justEditedId={justEditedMessageId}
+                onStartEdit={() => setEditingMessageId(msg.id)}
+                onCancelEdit={() => setEditingMessageId(null)}
+                onSaveEdit={handleSaveEdit}
+                onDelete={handleRequestDeleteMessage}
+                isLastMessage={index === chatHistory.length - 1}
+              />
+            </ErrorBoundary>
           ))}
           {isLoading && chatHistory[chatHistory.length - 1]?.author === Author.USER && (
             <div className="flex items-start space-x-4 animate-message-in">
@@ -546,7 +572,7 @@ const App: React.FC = () => {
           )}
           {showNewMessageIndicator && (<button onClick={handleIndicatorClick} className="new-message-indicator"><ScrollDownIcon /> New Messages</button>)}
         </div>
-        <div className="input-panel panel p-4 z-10">
+        <div className="input-panel panel p-4 z-10 flex-shrink-0">
           <PromptSuggestions suggestions={suggestions} isLoading={isSuggestionsLoading} onSelect={handleSuggestionSelect} />
           {error && <p className="text-error text-center text-sm pb-2 whitespace-pre-line">{error}</p>}
           <ChatInput 

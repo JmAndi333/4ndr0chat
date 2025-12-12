@@ -29,8 +29,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isEditing, justEdite
   const contentRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isManuallyExpanded, setIsManuallyExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     const currentRef = messageContainerRef.current;
@@ -43,25 +43,29 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isEditing, justEdite
                 observer.unobserve(currentRef);
             }
         },
-        { rootMargin: '300px' } // Start loading when 300px away from viewport
+        { rootMargin: '300px' }
     );
     observer.observe(currentRef);
 
     return () => {
+      if (currentRef) {
         observer.unobserve(currentRef);
+      }
     };
   }, []);
 
   useLayoutEffect(() => {
     if (contentRef.current && isVisible) {
-      setIsOverflowing(contentRef.current.scrollHeight > COLLAPSE_THRESHOLD);
+      const overflowing = contentRef.current.scrollHeight > COLLAPSE_THRESHOLD;
+      setIsOverflowing(overflowing);
+      if (overflowing && !isLastMessage) {
+        setIsCollapsed(true);
+      }
     }
-  }, [messageTextContent, isVisible]);
-
-  const shouldCollapse = isOverflowing && !isLastMessage && !isManuallyExpanded && !isEditing;
-
-
+  }, [messageTextContent, isVisible, isLastMessage]);
+  
   const animationClass = message.id !== 'ai-initial-greeting' ? 'animate-message-in' : '';
+  const canBeEdited = message.id !== 'ai-initial-greeting';
   
   useEffect(() => {
     if (isEditing) {
@@ -77,7 +81,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isEditing, justEdite
 
   const focusClasses = 'focus:border-[var(--accent-cyan)] focus:shadow-[0_0_8px_var(--accent-cyan)]';
   
-  // For user messages, we need to extract the non-text parts to display them alongside the rendered markdown text
   const userMediaParts = isUser ? message.parts.filter(part => 'inlineData' in part) : [];
 
   return (
@@ -90,13 +93,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isEditing, justEdite
       
       <div className="relative group max-w-2xl w-full">
          <MessageActions 
-            isUser={isUser} 
+            canBeEdited={canBeEdited}
             onStartEdit={onStartEdit} 
             messageText={messageTextContent}
             onDelete={() => onDelete(message.id)}
           />
-        {isEditing && isUser ? (
-            <div className="chat-bubble rounded-lg p-4 w-full space-y-3">
+        {isEditing ? (
+            <div className={`chat-bubble rounded-lg p-4 space-y-3 ${isUser ? 'ml-auto' : ''}`}>
               <AutoResizeTextarea
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
@@ -109,10 +112,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isEditing, justEdite
               </div>
             </div>
         ) : (
-            <div className={`chat-bubble rounded-lg p-4 ${isUser && message.id === justEditedId ? 'just-edited-glow' : ''}`}>
+            <div className={`chat-bubble rounded-lg p-4 ${isUser ? 'ml-auto' : ''} ${message.id === justEditedId ? 'just-edited-glow' : ''}`}>
               {isVisible ? (
                  <>
-                   <div ref={contentRef} className={`message-collapsible ${shouldCollapse ? 'message-collapsed' : ''}`}>
+                   <div ref={contentRef} className={`message-collapsible ${isCollapsed ? 'message-collapsed' : ''}`}>
                      {isUser && userMediaParts.length > 0 && (
                        <div className="space-y-3 mb-3">
                           {userMediaParts.map((part, index) => {
@@ -133,12 +136,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isEditing, justEdite
                           })}
                        </div>
                      )}
-                     <MessageRenderer text={messageTextContent} />
+                     <MessageRenderer text={messageTextContent} isUser={isUser} />
                    </div>
-                   {shouldCollapse && (
+                   {isOverflowing && (
                       <div className="collapse-overlay">
-                        <button className="show-more-button" onClick={() => setIsManuallyExpanded(true)}>
-                          Show More
+                        <button className="show-more-button" onClick={() => setIsCollapsed(prev => !prev)}>
+                          {isCollapsed ? 'Show More' : 'Show Less'}
                         </button>
                       </div>
                     )}
@@ -160,13 +163,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isEditing, justEdite
 };
 
 interface MessageActionsProps {
-  isUser: boolean;
+  canBeEdited: boolean;
   onStartEdit: () => void;
   messageText: string;
   onDelete: () => void;
 }
 
-const MessageActions: React.FC<MessageActionsProps> = ({ isUser, onStartEdit, messageText, onDelete }) => {
+const MessageActions: React.FC<MessageActionsProps> = ({ canBeEdited, onStartEdit, messageText, onDelete }) => {
     const [hasCopied, setHasCopied] = useState(false);
     
     const handleCopy = () => {
@@ -177,11 +180,12 @@ const MessageActions: React.FC<MessageActionsProps> = ({ isUser, onStartEdit, me
         });
     };
 
+    const isUser = !!(document.querySelector('.group .justify-end'));
     const positionClass = isUser ? 'left-0 -translate-x-full pr-2' : 'right-0 translate-x-full pl-2';
 
     return (
         <div className={`absolute ${positionClass} top-1/2 -translate-y-1/2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
-            {isUser && ( <button onClick={onStartEdit} className="action-button" aria-label="Edit message"><EditIcon /></button> )}
+            {canBeEdited && ( <button onClick={onStartEdit} className="action-button" aria-label="Edit message"><EditIcon /></button> )}
             <button onClick={handleCopy} className="action-button" aria-label="Copy message">
                 {hasCopied ? <CheckIcon /> : <CopyIcon />}
             </button>

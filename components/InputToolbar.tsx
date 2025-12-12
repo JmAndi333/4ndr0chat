@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
-import { PlusIcon, LinkIcon, PaperclipIcon, AutoScrollOnIcon, AutoScrollOffIcon, SuggestionsOnIcon, SuggestionsOffIcon, ReadmeIcon } from './IconComponents';
+import { PlusIcon, LinkIcon, PaperclipIcon, AutoScrollOnIcon, AutoScrollOffIcon, SuggestionsOnIcon, SuggestionsOffIcon, ReadmeIcon, TrashIcon } from './IconComponents';
 import { ALLOWED_IMAGE_TYPES, ALLOWED_TEXT_TYPES, Attachment } from '../types';
 
 const acceptedFileTypes = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_TEXT_TYPES].join(',');
@@ -11,6 +11,7 @@ interface InputToolbarProps {
   isLoading: boolean;
   isReadmeGenerating: boolean;
   attachments: Attachment[];
+  onClearAttachments: () => void;
   isAutoScrollEnabled: boolean;
   onToggleAutoScroll: () => void;
   isSuggestionsEnabled: boolean;
@@ -22,7 +23,7 @@ interface InputToolbarProps {
 
 const InputToolbar = forwardRef<HTMLDivElement, InputToolbarProps>(({
   onOpenUrlModal, onFileChange, onGenerateReadme, isLoading, isReadmeGenerating, attachments,
-  isAutoScrollEnabled, onToggleAutoScroll, isSuggestionsEnabled, onToggleSuggestions,
+  onClearAttachments, isAutoScrollEnabled, onToggleAutoScroll, isSuggestionsEnabled, onToggleSuggestions,
   inputLength, maxLength, isVisible
 }, ref) => {
     const [isAttachPopoverOpen, setIsAttachPopoverOpen] = useState(false);
@@ -74,29 +75,34 @@ const InputToolbar = forwardRef<HTMLDivElement, InputToolbarProps>(({
       <div ref={ref} className={`input-toolbar ${isVisible ? 'is-visible' : ''}`}>
           <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept={acceptedFileTypes} multiple />
           <div className="relative">
-              <button ref={attachButtonRef} type="button" onClick={handleToggleAttachPopover} className={`action-button ${isAttachPopoverOpen ? 'active' : ''}`} aria-label="Attach file or URL">
+              <button ref={attachButtonRef} type="button" onClick={handleToggleAttachPopover} className={`action-button ${isAttachPopoverOpen ? 'active' : ''}`} aria-label="Attach file or URL" title="Attach file or URL">
                   <PlusIcon />
               </button>
               {isPopoverRendered && (
                   <div ref={popoverRef} className={`attach-popover ${isAttachPopoverOpen ? 'animate-attach-popover-in' : 'animate-attach-popover-out'}`}>
-                      <button onClick={handleAttachUrlClick} className="attach-popover-button" disabled={hasNonTextAttachment}>
+                      <button onClick={handleAttachUrlClick} className="attach-popover-button" disabled={hasNonTextAttachment} title="Attach content from a URL">
                           <LinkIcon className="w-4 h-4" /> Attach URL
                       </button>
-                      <button onClick={handleAttachFileClick} className="attach-popover-button" disabled={hasNonTextAttachment}>
+                      <button onClick={handleAttachFileClick} className="attach-popover-button" disabled={hasNonTextAttachment} title="Attach files from your device">
                           <PaperclipIcon className="w-4 h-4" /> Attach File
                       </button>
                   </div>
               )}
           </div>
-          <button type="button" onClick={onToggleAutoScroll} className={`action-button ${!isAutoScrollEnabled ? 'active' : ''}`} aria-label={isAutoScrollEnabled ? "Disable auto-scroll" : "Enable auto-scroll"}>
+          <button type="button" onClick={onToggleAutoScroll} className={`action-button ${!isAutoScrollEnabled ? 'active' : ''}`} aria-label={isAutoScrollEnabled ? "Disable auto-scroll" : "Enable auto-scroll"} title={isAutoScrollEnabled ? "Disable auto-scroll" : "Enable auto-scroll"}>
               {isAutoScrollEnabled ? <AutoScrollOnIcon /> : <AutoScrollOffIcon />}
           </button>
-          <button type="button" onClick={onToggleSuggestions} className={`action-button ${!isSuggestionsEnabled ? 'active' : ''}`} aria-label={isSuggestionsEnabled ? "Disable suggestions" : "Enable suggestions"}>
+          <button type="button" onClick={onToggleSuggestions} className={`action-button ${!isSuggestionsEnabled ? 'active' : ''}`} aria-label={isSuggestionsEnabled ? "Disable suggestions" : "Enable suggestions"} title={isSuggestionsEnabled ? "Disable suggestions" : "Enable suggestions"}>
               {isSuggestionsEnabled ? <SuggestionsOnIcon /> : <SuggestionsOffIcon />}
           </button>
-           <button type="button" onClick={onGenerateReadme} className="action-button" aria-label="Generate README" disabled={isLoading || isReadmeGenerating}>
+           <button type="button" onClick={onGenerateReadme} className="action-button" aria-label="Generate README" disabled={isLoading || isReadmeGenerating} title="Generate README">
               <ReadmeIcon />
           </button>
+          {attachments.length > 0 && (
+            <button type="button" onClick={onClearAttachments} className="action-button danger" title="Clear all attachments">
+                <TrashIcon className="h-5 w-5" />
+            </button>
+          )}
           <div className="toolbar-divider"></div>
           <div className={`toolbar-char-count ${isOverLimit ? 'text-error' : ''}`}>{inputLength} / {maxLength}</div>
       </div>

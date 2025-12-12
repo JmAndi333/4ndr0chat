@@ -65,30 +65,9 @@ const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
         ref.current.focus();
       }
     }
-    
-    const renderedMarkdownPreview = useMemo(() => {
-      if (window.marked && input.trim()) {
-          try {
-              const rawHtml = window.marked.parse(input, { breaks: true });
-              if (window.DOMPurify) {
-                  return window.DOMPurify.sanitize(rawHtml);
-              }
-              return rawHtml;
-          } catch (error) {
-              console.error("Markdown parsing error:", error);
-              return `<p class="text-error">Error parsing Markdown.</p>`;
-          }
-      }
-      return null;
-    }, [input]);
 
     return (
       <div className="max-w-4xl mx-auto relative">
-        {renderedMarkdownPreview && (
-          <div className="markdown-preview-container chat-bubble">
-              <div className="prose prose-invert max-w-none prose-p:my-2" dangerouslySetInnerHTML={{ __html: renderedMarkdownPreview }} />
-          </div>
-        )}
         <AttachmentPreview attachments={attachments} onClearAttachments={onClearAttachments} />
         <InputToolbar 
           ref={toolbarRef}
@@ -96,6 +75,7 @@ const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
           isVisible={isFocused}
           isLoading={isLoading}
           attachments={attachments}
+          onClearAttachments={onClearAttachments}
           inputLength={input.length}
           maxLength={maxLength}
         />
