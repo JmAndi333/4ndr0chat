@@ -27,7 +27,7 @@ export function createChatSession(history: ChatMessageType[]): Chat {
     // This is the correct method to start a chat with a pre-existing history,
     // which is essential for the edit/fork functionality.
     return ai.chats.create({
-        model: 'gemini-3-flash',
+        model: 'gemini-3-flash-preview',
         history: buildHistoryForApi(history),
         config: {
             systemInstruction: SYSTEM_INSTRUCTION,
@@ -132,7 +132,7 @@ export async function getPromptSuggestions(history: ChatMessageType[]): Promise<
         // If context is long, summarize it first for better suggestions
         if (contextForPrompt.length > 1500) {
             const summaryResponse = await ai.models.generateContent({
-                model: "gemini-2.5-flash", // Use a fast model for summarization
+                model: "gemini-3-flash-preview", // Use a fast model for summarization
                 contents: `Summarize the following conversation's key themes and the user's most recent intent in 1-2 sentences.\n---\n${contextForPrompt}\n---`,
                 config: {
                      systemInstruction: "You are a helpful summarization assistant for an advanced AI.",
@@ -148,7 +148,7 @@ export async function getPromptSuggestions(history: ChatMessageType[]): Promise<
         ${contextForPrompt}`;
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-pro",
+            model: "gemini-3-flash-preview",
             contents: prompt,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
@@ -219,7 +219,7 @@ ${conversationLog}
 ---
 `;
         const response = await ai.models.generateContent({
-            model: "gemini-3-flash",
+            model: "gemini-3-flash-preview",
             contents: prompt,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
