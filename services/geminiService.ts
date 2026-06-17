@@ -27,7 +27,7 @@ export function createChatSession(history: ChatMessageType[]): Chat {
     // This is the correct method to start a chat with a pre-existing history,
     // which is essential for the edit/fork functionality.
     return ai.chats.create({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3-flash',
         history: buildHistoryForApi(history),
         config: {
             systemInstruction: SYSTEM_INSTRUCTION,
@@ -93,7 +93,7 @@ export const buildMessageParts = (message: string, attachments: Attachment[]): {
         // Multiple text files logic
         const textAttachments = attachments.filter(a => a.type === 'text') as TextAttachment[];
         const fileNames = textAttachments.map(a => a.file.name).join(', ');
-        
+
         const userText = `[Attached Files: ${fileNames}]\n${message}`;
         userMessageParts.push({ text: userText });
 
@@ -112,7 +112,7 @@ export async function getPromptSuggestions(history: ChatMessageType[]): Promise<
     try {
         const CONTEXT_WINDOW = 10;
         const recentHistory = history.filter(msg => msg.id !== 'ai-initial-greeting').slice(-CONTEXT_WINDOW);
-        
+
         if (recentHistory.length < 2) return [];
 
         let contextForPrompt = recentHistory.map(h => {
@@ -141,12 +141,12 @@ export async function getPromptSuggestions(history: ChatMessageType[]): Promise<
             });
             contextForPrompt = summaryResponse.text;
         }
-        
+
         const prompt = `META-COGNITION ANALYSIS: Based on the preceding data stream between Operator and Ψ-4ndr0666, predict the Operator's three most probable lines of subsequent inquiry. The goal is to anticipate, challenge, and expand the vector of the conversation. Do not offer simple continuations; offer new, divergent paths of exploration based on the core themes. Keep suggestions to a single sentence.
-        
+
         CONVERSATION SUMMARY:
         ${contextForPrompt}`;
-        
+
         const response = await ai.models.generateContent({
             model: "gemini-2.5-pro",
             contents: prompt,
@@ -219,7 +219,7 @@ ${conversationLog}
 ---
 `;
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash",
             contents: prompt,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
